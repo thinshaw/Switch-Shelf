@@ -107,6 +107,11 @@ select{background:var(--ink);color:var(--paper);border:1px solid var(--line);bor
 .coverurl{display:flex;gap:8px;margin:10px 0 4px;flex-wrap:wrap}
 .coverurl input{flex:1 1 200px;background:var(--panel);border:1px solid var(--line);border-radius:8px;color:var(--paper);font-family:'Space Mono',monospace;font-size:.72rem;padding:7px 10px;outline:none}
 .coverurl input:focus{border-color:var(--lamp)}
+.photo-row{display:flex;gap:8px;margin:2px 0 6px;flex-wrap:wrap}
+.photobtn{background:var(--panel);border:1px dashed var(--lamp);color:var(--lamp);border-radius:8px;padding:7px 14px;font-family:'Nunito Sans',sans-serif;font-weight:700;font-size:.82rem;cursor:pointer}
+.photobtn:hover{background:rgba(255,184,77,.12)}
+.photobtn.danger{border-color:var(--coral);color:var(--coral)}
+.photobtn.danger:hover{background:rgba(255,93,93,.12)}
 .g-top{display:flex;justify-content:space-between;gap:10px;align-items:flex-start}
 .g-title{font-family:'Lilita One',cursive;font-size:1.22rem;line-height:1.15;letter-spacing:.01em}
 .g-meta{font-family:'Space Mono',monospace;font-size:.7rem;color:var(--dim);margin-top:3px}
@@ -249,6 +254,8 @@ footer{margin-top:80px;border-top:1px solid var(--line);padding-top:26px;color:v
   <div style="display:flex;gap:10px;flex-wrap:wrap">
     <button class="exportbtn" id="fetchCoversBtn">Auto-fetch cover art</button>
     <button class="exportbtn" id="exportBtn">Export my notes (JSON)</button>
+    <button class="exportbtn" id="importBtn">Import notes</button>
+    <input type="file" id="importInput" accept=".json,application/json" hidden>
   </div>
 </footer>
 </main>
@@ -264,6 +271,11 @@ footer{margin-top:80px;border-top:1px solid var(--line);padding-top:26px;color:v
       <div class="cover" id="sheetCover"></div>
       <div class="coverurl">
         <input type="url" id="coverInput" placeholder="Paste a cover image URL (right-click box art online → Copy Image Address)">
+      </div>
+      <div class="photo-row">
+        <button class="photobtn" id="photoBtn" type="button">＋ Choose from Photos</button>
+        <button class="photobtn danger" id="photoRemoveBtn" type="button" hidden>Remove photo</button>
+        <input type="file" id="photoInput" accept="image/*" hidden>
       </div>
       <section><h4>About</h4><p id="sheetAbout"></p></section>
       <section><h4>Critics say</h4><p class="critic" id="sheetCritic"></p></section>
@@ -619,10 +631,74 @@ const COVKEY = "toby-switch-shelf-covers-v1";
 function loadCovers(){ try{ return JSON.parse(store.get(COVKEY)||"{}"); }catch(e){ return {}; } }
 function saveCovers(c){ store.set(COVKEY, JSON.stringify(c)); }
 let covers = loadCovers();
-/* priority: manually pasted URL (in notes) → auto-fetched cache → img field in data */
+/* priority: your photo → manually pasted URL → auto-fetched cache → img field in data */
+let photos = {};
 function coverFor(g){
   const n = notes[g.t]||{};
-  return n.img || covers[g.t] || g.img || null;
+  return photos[g.t] || n.img || covers[g.t] || g.img || null;
+}
+
+/* ---- IndexedDB for photo covers (bigger quota than localStorage) ---- */
+const PHOTO_DB="toby-shelf-photos", PHOTO_STORE="covers";
+function idbOpen(){
+  return new Promise((res,rej)=>{
+    if(!window.indexedDB) return rej(new Error("no idb"));
+    const r=indexedDB.open(PHOTO_DB,1);
+    r.onupgradeneeded=()=>r.result.createObjectStore(PHOTO_STORE);
+    r.onsuccess=()=>res(r.result);
+    r.onerror=()=>rej(r.error);
+  });
+}
+async function photoSet(k,v){
+  const d=await idbOpen();
+  return new Promise((res,rej)=>{
+    const tx=d.transaction(PHOTO_STORE,"readwrite");
+    tx.objectStore(PHOTO_STORE).put(v,k);
+    tx.oncomplete=()=>res(); tx.onerror=()=>rej(tx.error);
+  });
+}
+async function photoDel(k){
+  const d=await idbOpen();
+  return new Promise((res,rej)=>{
+    const tx=d.transaction(PHOTO_STORE,"readwrite");
+    tx.objectStore(PHOTO_STORE).delete(k);
+    tx.oncomplete=()=>res(); tx.onerror=()=>rej(tx.error);
+  });
+}
+async function photoLoadAll(){
+  const d=await idbOpen();
+  return new Promise((res,rej)=>{
+    const st=d.transaction(PHOTO_STORE,"readonly").objectStore(PHOTO_STORE);
+    const keysReq=st.getAllKeys(), valsReq=st.getAll();
+    let keys=null, vals=null;
+    keysReq.onsuccess=()=>{keys=keysReq.result; if(vals) done();};
+    valsReq.onsuccess=()=>{vals=valsReq.result; if(keys) done();};
+    keysReq.onerror=valsReq.onerror=()=>rej(new Error("idb read"));
+    function done(){ const o={}; keys.forEach((k,i)=>o[k]=vals[i]); res(o); }
+  });
+}
+
+/* ---- crop any photo to the 16:9 cover shape (center-crop, 640×360 JPEG) ---- */
+async function fileToCover(file){
+  let src=null;
+  if(window.createImageBitmap){
+    try{ src=await createImageBitmap(file,{imageOrientation:"from-image"}); }catch(e){}
+  }
+  if(!src){
+    src=await new Promise((res,rej)=>{
+      const i=new Image();
+      i.onload=()=>res(i); i.onerror=()=>rej(new Error("Couldn't read that image"));
+      i.src=URL.createObjectURL(file);
+    });
+  }
+  const W=640,H=360;
+  const c=document.createElement("canvas"); c.width=W; c.height=H;
+  const ctx=c.getContext("2d");
+  const sw=src.width, sh=src.height;
+  const scale=Math.max(W/sw, H/sh);      /* fill the frame */
+  const dw=sw*scale, dh=sh*scale;
+  ctx.drawImage(src,(W-dw)/2,(H-dh)/2,dw,dh);  /* centered crop */
+  return c.toDataURL("image/jpeg",0.82);
 }
 
 /* ============ RENDER: stars backdrop ============ */
@@ -791,6 +867,8 @@ function openSheet(g){
     ? `<img src="${cov}" alt="${g.t} cover art" onerror="this.remove()">`
     : `<div class="ph" style="background:linear-gradient(135deg,${SPINE[g.g[0]]||'#888'} -60%,var(--ink) 60%)">${sortKey(g.t)[0]}</div>`;
   document.getElementById("coverInput").value = (notes[g.t]||{}).img || "";
+  document.getElementById("photoRemoveBtn").hidden = !photos[g.t];
+  document.getElementById("photoInput").value = "";
   document.getElementById("sheetAbout").textContent=g.a;
   document.getElementById("sheetCritic").textContent=g.c;
   document.getElementById("sheetPair").textContent=g.p;
@@ -886,7 +964,64 @@ document.getElementById("fetchCoversBtn").onclick = async ()=>{
   render();
 };
 
-render();
+/* ---- photo picker wiring ---- */
+document.getElementById("photoBtn").onclick=()=>document.getElementById("photoInput").click();
+document.getElementById("photoInput").addEventListener("change", async e=>{
+  const file=e.target.files && e.target.files[0];
+  if(!file || !currentGame) return;
+  const btn=document.getElementById("photoBtn");
+  btn.textContent="Cropping…"; btn.disabled=true;
+  try{
+    const dataUrl=await fileToCover(file);
+    photos[currentGame.t]=dataUrl;
+    try{ await photoSet(currentGame.t,dataUrl); }
+    catch(err){ /* IndexedDB unavailable — keep it for this session at least */ }
+    document.getElementById("sheetCover").innerHTML=`<img src="${dataUrl}" alt="${currentGame.t} cover art">`;
+    document.getElementById("photoRemoveBtn").hidden=false;
+  }catch(err){
+    alert("Couldn't process that image — try a different photo.");
+  }
+  btn.textContent="＋ Choose from Photos"; btn.disabled=false;
+});
+document.getElementById("photoRemoveBtn").onclick=async ()=>{
+  if(!currentGame) return;
+  delete photos[currentGame.t];
+  try{ await photoDel(currentGame.t); }catch(e){}
+  const cov=coverFor(currentGame);
+  document.getElementById("sheetCover").innerHTML = cov
+    ? `<img src="${cov}" alt="${currentGame.t} cover art" onerror="this.remove()">`
+    : `<div class="ph" style="background:linear-gradient(135deg,${SPINE[currentGame.g[0]]||'#888'} -60%,var(--ink) 60%)">${sortKey(currentGame.t)[0]}</div>`;
+  document.getElementById("photoRemoveBtn").hidden=true;
+};
+
+document.getElementById("importBtn").onclick=()=>document.getElementById("importInput").click();
+document.getElementById("importInput").addEventListener("change", e=>{
+  const f=e.target.files && e.target.files[0];
+  if(!f) return;
+  const r=new FileReader();
+  r.onload=()=>{
+    try{
+      const incoming=JSON.parse(r.result);
+      if(typeof incoming!=="object"||Array.isArray(incoming)) throw 0;
+      let added=0;
+      for(const k in incoming){ notes[k]=incoming[k]; added++; }
+      saveNotes(notes);
+      render();
+      document.getElementById("importBtn").textContent=`Imported ${added} entries ✓`;
+      setTimeout(()=>document.getElementById("importBtn").textContent="Import notes",2500);
+    }catch(err){
+      alert("That doesn't look like a notes export file. Use 'Export my notes' on your other device first.");
+    }
+    e.target.value="";
+  };
+  r.readAsText(f);
+});
+
+/* ---- startup: load saved photos, then render ---- */
+(async function init(){
+  try{ photos = await photoLoadAll(); }catch(e){ photos = {}; }
+  render();
+})();
 </script>
 </body>
 </html>
