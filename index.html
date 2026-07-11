@@ -98,6 +98,15 @@ select{background:var(--ink);color:var(--paper);border:1px solid var(--line);bor
 .game:focus-visible{outline:2px solid var(--lamp);outline-offset:2px}
 /* case spine — colored by genre */
 .game::before{content:"";position:absolute;left:0;top:0;bottom:0;width:9px;background:var(--spine,#888)}
+.cover{width:100%;aspect-ratio:16/9;border-radius:9px;overflow:hidden;background:var(--ink);border:1px solid var(--line);position:relative}
+.cover img{width:100%;height:100%;object-fit:cover;display:block}
+.cover .ph{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;
+  font-family:'Lilita One',cursive;font-size:3rem;color:rgba(255,255,255,.16);
+  background:linear-gradient(135deg,var(--spine,#888) -60%,var(--ink) 60%)}
+.sheet .cover{aspect-ratio:16/7;margin-top:14px}
+.coverurl{display:flex;gap:8px;margin:10px 0 4px;flex-wrap:wrap}
+.coverurl input{flex:1 1 200px;background:var(--panel);border:1px solid var(--line);border-radius:8px;color:var(--paper);font-family:'Space Mono',monospace;font-size:.72rem;padding:7px 10px;outline:none}
+.coverurl input:focus{border-color:var(--lamp)}
 .g-top{display:flex;justify-content:space-between;gap:10px;align-items:flex-start}
 .g-title{font-family:'Lilita One',cursive;font-size:1.22rem;line-height:1.15;letter-spacing:.01em}
 .g-meta{font-family:'Space Mono',monospace;font-size:.7rem;color:var(--dim);margin-top:3px}
@@ -237,7 +246,10 @@ footer{margin-top:80px;border-top:1px solid var(--line);padding-top:26px;color:v
 
 <footer>
   <div>Built for the shelf, not the algorithm. Scores are approximate critic averages (Metacritic/OpenCritic) at time of writing.</div>
-  <button class="exportbtn" id="exportBtn">Export my notes (JSON)</button>
+  <div style="display:flex;gap:10px;flex-wrap:wrap">
+    <button class="exportbtn" id="fetchCoversBtn">Auto-fetch cover art</button>
+    <button class="exportbtn" id="exportBtn">Export my notes (JSON)</button>
+  </div>
 </footer>
 </main>
 
@@ -249,6 +261,10 @@ footer{margin-top:80px;border-top:1px solid var(--line);padding-top:26px;color:v
       <button class="close" id="closeBtn" aria-label="Close">✕</button>
       <h2 id="sheetTitle"></h2>
       <div class="meta-row" id="sheetMeta"></div>
+      <div class="cover" id="sheetCover"></div>
+      <div class="coverurl">
+        <input type="url" id="coverInput" placeholder="Paste a cover image URL (right-click box art online → Copy Image Address)">
+      </div>
       <section><h4>About</h4><p id="sheetAbout"></p></section>
       <section><h4>Critics say</h4><p class="critic" id="sheetCritic"></p></section>
       <section><h4>Pairs well with</h4><p class="pair" id="sheetPair"></p></section>
@@ -599,6 +615,15 @@ const KEY = "toby-switch-shelf-notes-v1";
 function loadNotes(){ try{ return JSON.parse(store.get(KEY)||"{}"); }catch(e){ return {}; } }
 function saveNotes(n){ store.set(KEY, JSON.stringify(n)); }
 let notes = loadNotes();
+const COVKEY = "toby-switch-shelf-covers-v1";
+function loadCovers(){ try{ return JSON.parse(store.get(COVKEY)||"{}"); }catch(e){ return {}; } }
+function saveCovers(c){ store.set(COVKEY, JSON.stringify(c)); }
+let covers = loadCovers();
+/* priority: manually pasted URL (in notes) → auto-fetched cache → img field in data */
+function coverFor(g){
+  const n = notes[g.t]||{};
+  return n.img || covers[g.t] || g.img || null;
+}
 
 /* ============ RENDER: stars backdrop ============ */
 (function(){
@@ -706,8 +731,12 @@ function card(g){
   el.style.setProperty("--spine", SPINE[g.g[0]]||"#888");
   const n = notes[g.t]||{};
   const stars = n.stars ? "★".repeat(n.stars)+"☆".repeat(5-n.stars) : "";
+  const cover = coverFor(g);
   el.innerHTML = `
     ${n.text?'<span class="note-dot" title="Has logbook entry"></span>':""}
+    <div class="cover">${cover
+      ? `<img src="${cover}" alt="${g.t} cover art" loading="lazy" onerror="this.remove()">`
+      : `<div class="ph">${sortKey(g.t)[0]}</div>`}</div>
     <div class="g-top">
       <div>
         <div class="g-title">${g.t}</div>
@@ -757,6 +786,11 @@ function openSheet(g){
   document.getElementById("sheetTitle").textContent=g.t;
   document.getElementById("sheetMeta").innerHTML=
     `<span><b>${g.y}</b> release</span><span><b>${g.d}</b></span><span>ESRB <b>${g.e}</b></span><span>Critics <b>${g.s}</b>/100</span><span>${g.g.join(" · ")}</span>`;
+  const cov = coverFor(g);
+  document.getElementById("sheetCover").innerHTML = cov
+    ? `<img src="${cov}" alt="${g.t} cover art" onerror="this.remove()">`
+    : `<div class="ph" style="background:linear-gradient(135deg,${SPINE[g.g[0]]||'#888'} -60%,var(--ink) 60%)">${sortKey(g.t)[0]}</div>`;
+  document.getElementById("coverInput").value = (notes[g.t]||{}).img || "";
   document.getElementById("sheetAbout").textContent=g.a;
   document.getElementById("sheetCritic").textContent=g.c;
   document.getElementById("sheetPair").textContent=g.p;
@@ -790,9 +824,15 @@ document.getElementById("saveBtn").onclick=()=>{
   notes[currentGame.t]={
     stars:pendingStars,
     status:document.getElementById("statusPick").value,
-    text:document.getElementById("noteBox").value.trim()
+    text:document.getElementById("noteBox").value.trim(),
+    img:document.getElementById("coverInput").value.trim()
   };
-  if(!notes[currentGame.t].stars && !notes[currentGame.t].status && !notes[currentGame.t].text) delete notes[currentGame.t];
+  const e=notes[currentGame.t];
+  if(!e.stars && !e.status && !e.text && !e.img) delete notes[currentGame.t];
+  const cov2=coverFor(currentGame);
+  document.getElementById("sheetCover").innerHTML = cov2
+    ? `<img src="${cov2}" alt="${currentGame.t} cover art" onerror="this.remove()">`
+    : `<div class="ph">${sortKey(currentGame.t)[0]}</div>`;
   saveNotes(notes);
   const m=document.getElementById("savedMsg");
   m.classList.add("show"); setTimeout(()=>m.classList.remove("show"),2200);
@@ -806,6 +846,44 @@ document.getElementById("exportBtn").onclick=()=>{
   a.download="switch-shelf-notes.json";
   a.click();
   URL.revokeObjectURL(a.href);
+};
+
+/* ============ AUTO-FETCH COVERS (RAWG.io, free API) ============ */
+const RAWGKEY_STORE = "toby-switch-shelf-rawg-key";
+const RAWG_DEFAULT_KEY = "156cd343dea94024805c81f9a9e2c37f";
+/* strip edition suffixes so the database search matches */
+function searchName(t){
+  return t.replace(/\s*[—–-]\s*(Nintendo Switch 2 Edition|Switch 2 Edition|Director's Cut|Weaver's Edition|Ultimate Edition|Complete Edition|The End of YoRHa Edition|Game of the Year Edition)/gi,"")
+          .replace(/\s*\(2016\)/,"").trim();
+}
+document.getElementById("fetchCoversBtn").onclick = async ()=>{
+  let key = store.get(RAWGKEY_STORE) || RAWG_DEFAULT_KEY;
+  if(!key){
+    key = prompt("Paste your free RAWG API key.\n\nGet one in ~30 seconds at rawg.io/apidata (sign up, key appears instantly). It's stored only in this browser.");
+    if(!key) return;
+    key = key.trim();
+    store.set(RAWGKEY_STORE, key);
+  }
+  const btn = document.getElementById("fetchCoversBtn");
+  const missing = GAMES.filter(g=>!coverFor(g));
+  if(!missing.length){ btn.textContent="All covers set ✓"; return; }
+  let done=0, found=0;
+  btn.disabled = true;
+  for(const g of missing){
+    btn.textContent = `Fetching ${++done}/${missing.length}…`;
+    try{
+      const r = await fetch(`https://api.rawg.io/api/games?key=${encodeURIComponent(key)}&search=${encodeURIComponent(searchName(g.t))}&page_size=1`);
+      if(r.status===401){ btn.textContent="Invalid key — click to retry"; store.set(RAWGKEY_STORE,""); btn.disabled=false; return; }
+      const j = await r.json();
+      const img = j && j.results && j.results[0] && j.results[0].background_image;
+      if(img){ covers[g.t]=img; found++; }
+    }catch(e){ /* skip and continue */ }
+    await new Promise(res=>setTimeout(res,120)); /* be polite to the API */
+  }
+  saveCovers(covers);
+  btn.disabled = false;
+  btn.textContent = `Fetched ${found} covers ✓ (click again to retry misses)`;
+  render();
 };
 
 render();
