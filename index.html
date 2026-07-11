@@ -1,0 +1,814 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Toby's Switch Shelf</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Lilita+One&family=Nunito+Sans:ital,wght@0,400;0,600;0,700;0,800;1,400&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --ink:#0F1322;          /* deep night navy — handheld-in-the-evening */
+  --panel:#181E33;
+  --card:#1F2742;
+  --card-hi:#273156;
+  --line:#323C60;
+  --paper:#EDE7DA;        /* warm off-white text */
+  --dim:#A9A79B;
+  --lamp:#FFB84D;         /* amber lamplight */
+  --coral:#FF5D5D;        /* Switch red, functional accent */
+  --mint:#6FE3C1;         /* score highlight */
+  --sky:#7FB4FF;
+  --radius:14px;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html{scroll-behavior:smooth}
+body{
+  background:var(--ink);
+  color:var(--paper);
+  font-family:'Nunito Sans',sans-serif;
+  font-size:16px;line-height:1.55;
+  min-height:100vh;
+}
+/* ---------- starfield backdrop ---------- */
+.stars{position:fixed;inset:0;pointer-events:none;z-index:0;overflow:hidden}
+.stars i{position:absolute;width:3px;height:3px;background:var(--paper);opacity:.16;image-rendering:pixelated}
+.stars i.b{width:5px;height:5px;opacity:.10}
+@media (prefers-reduced-motion:no-preference){
+  .stars i{animation:twinkle 4s ease-in-out infinite}
+  .stars i:nth-child(3n){animation-delay:1.3s}
+  .stars i:nth-child(4n){animation-delay:2.6s}
+  @keyframes twinkle{0%,100%{opacity:.08}50%{opacity:.28}}
+}
+main{position:relative;z-index:1;max-width:1180px;margin:0 auto;padding:0 22px 90px}
+
+/* ---------- hero ---------- */
+header.hero{padding:64px 0 30px;text-align:left}
+.eyebrow{font-family:'Space Mono',monospace;font-size:.78rem;letter-spacing:.22em;text-transform:uppercase;color:var(--lamp)}
+h1{
+  font-family:'Lilita One',cursive;
+  font-size:clamp(2.6rem,6.5vw,4.4rem);
+  line-height:1.02;margin:.35rem 0 .8rem;
+  color:var(--paper);
+}
+h1 .glow{color:var(--lamp);text-shadow:0 0 26px rgba(255,184,77,.35)}
+.hero p.lede{max-width:640px;color:var(--dim);font-size:1.06rem}
+.shelf-stats{display:flex;flex-wrap:wrap;gap:26px;margin-top:26px;font-family:'Space Mono',monospace}
+.shelf-stats .stat b{display:block;font-size:1.7rem;color:var(--mint);font-weight:700}
+.shelf-stats .stat span{font-size:.72rem;letter-spacing:.14em;text-transform:uppercase;color:var(--dim)}
+/* the "shelf edge" — signature element */
+.shelf-edge{height:14px;border-radius:4px;margin-top:34px;
+  background:linear-gradient(90deg,#5b3a24,#7a4d2e 30%,#6a4228 70%,#553621);
+  box-shadow:0 6px 0 rgba(0,0,0,.35), inset 0 2px 0 rgba(255,255,255,.12);}
+.shelf-books{display:flex;gap:3px;align-items:flex-end;height:44px;padding:0 10px;margin-bottom:-2px}
+.shelf-books i{display:block;width:10px;border-radius:2px 2px 0 0;opacity:.9}
+
+/* ---------- controls ---------- */
+.controls{position:sticky;top:0;z-index:40;background:linear-gradient(var(--ink) 78%,transparent);padding:16px 0 20px}
+.controls-inner{background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);padding:14px 16px;display:flex;flex-wrap:wrap;gap:12px;align-items:center}
+.search{flex:1 1 240px;display:flex;align-items:center;gap:8px;background:var(--ink);border:1px solid var(--line);border-radius:10px;padding:8px 12px}
+.search input{flex:1;background:none;border:none;outline:none;color:var(--paper);font-family:inherit;font-size:.95rem}
+.search input::placeholder{color:var(--dim)}
+select{background:var(--ink);color:var(--paper);border:1px solid var(--line);border-radius:10px;padding:8px 10px;font-family:'Space Mono',monospace;font-size:.8rem;cursor:pointer}
+.chips{display:flex;flex-wrap:wrap;gap:8px;width:100%}
+.chip{font-family:'Space Mono',monospace;font-size:.72rem;letter-spacing:.04em;border:1px solid var(--line);background:transparent;color:var(--dim);border-radius:999px;padding:5px 12px;cursor:pointer;transition:all .15s}
+.chip:hover{border-color:var(--lamp);color:var(--paper)}
+.chip.on{background:var(--lamp);border-color:var(--lamp);color:#221503;font-weight:700}
+.alpha{display:flex;flex-wrap:wrap;gap:4px;margin-top:14px}
+.alpha a{font-family:'Space Mono',monospace;font-size:.75rem;color:var(--sky);text-decoration:none;padding:2px 7px;border-radius:6px}
+.alpha a:hover{background:var(--panel);color:var(--lamp)}
+.alpha a.dead{color:#3d4560;pointer-events:none}
+
+/* ---------- letter sections + grid ---------- */
+.letter{margin-top:44px;scroll-margin-top:120px}
+.letter h2{
+  font-family:'Lilita One',cursive;font-size:2rem;color:var(--lamp);
+  display:flex;align-items:center;gap:14px}
+.letter h2::after{content:"";flex:1;height:2px;background:linear-gradient(90deg,var(--line),transparent)}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(320px,1fr));gap:18px;margin-top:16px}
+
+/* ---------- game card ---------- */
+.game{
+  position:relative;background:var(--card);border:1px solid var(--line);
+  border-radius:var(--radius);padding:18px 18px 16px 26px;cursor:pointer;
+  transition:transform .16s ease, box-shadow .16s ease, border-color .16s;
+  display:flex;flex-direction:column;gap:10px;overflow:hidden}
+.game:hover,.game:focus-visible{transform:translateY(-4px);border-color:var(--lamp);box-shadow:0 14px 28px rgba(0,0,0,.45)}
+.game:focus-visible{outline:2px solid var(--lamp);outline-offset:2px}
+/* case spine — colored by genre */
+.game::before{content:"";position:absolute;left:0;top:0;bottom:0;width:9px;background:var(--spine,#888)}
+.g-top{display:flex;justify-content:space-between;gap:10px;align-items:flex-start}
+.g-title{font-family:'Lilita One',cursive;font-size:1.22rem;line-height:1.15;letter-spacing:.01em}
+.g-meta{font-family:'Space Mono',monospace;font-size:.7rem;color:var(--dim);margin-top:3px}
+.score{
+  flex-shrink:0;min-width:46px;text-align:center;font-family:'Space Mono',monospace;font-weight:700;
+  border-radius:9px;padding:6px 8px;font-size:1rem;background:var(--ink);border:1px solid var(--line)}
+.score.hi{color:var(--mint);border-color:rgba(111,227,193,.4)}
+.score.mid{color:var(--lamp)}
+.score.lo{color:var(--coral)}
+.score small{display:block;font-size:.55rem;font-weight:400;color:var(--dim);letter-spacing:.08em}
+.g-blurb{font-size:.9rem;color:#CFC9BC}
+.g-tags{display:flex;flex-wrap:wrap;gap:6px;margin-top:auto}
+.tag{font-family:'Space Mono',monospace;font-size:.63rem;letter-spacing:.05em;color:var(--dim);border:1px solid var(--line);border-radius:6px;padding:2px 7px}
+.tag.esrb{color:var(--sky);border-color:rgba(127,180,255,.35)}
+.badge-playing{
+  display:inline-flex;align-items:center;gap:6px;font-family:'Space Mono',monospace;font-size:.66rem;font-weight:700;
+  background:var(--coral);color:#2a0808;border-radius:999px;padding:3px 10px;letter-spacing:.08em}
+.badge-playing::before{content:"";width:7px;height:7px;border-radius:50%;background:#2a0808;animation:pulse 1.6s infinite}
+@keyframes pulse{50%{opacity:.35}}
+.note-dot{position:absolute;top:12px;right:12px;width:9px;height:9px;border-radius:50%;background:var(--mint);box-shadow:0 0 8px var(--mint)}
+.mystars{color:var(--lamp);font-size:.8rem;letter-spacing:2px}
+
+/* ---------- retro shelf ---------- */
+.retro{margin-top:60px;background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);padding:24px}
+.retro h2{font-family:'Lilita One',cursive;font-size:1.7rem;color:var(--coral)}
+.retro p{color:var(--dim);font-size:.92rem;max-width:720px;margin-top:6px}
+.retro-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:12px;margin-top:18px}
+.retro-item{background:var(--coral);color:#2a0808;border-radius:10px;padding:14px;font-weight:800;font-size:.9rem;line-height:1.3}
+.retro-item span{display:block;font-family:'Space Mono',monospace;font-weight:400;font-size:.66rem;margin-top:4px;opacity:.85}
+
+/* ---------- queues ---------- */
+.queues{margin-top:70px}
+.queues>h2{font-family:'Lilita One',cursive;font-size:2.2rem}
+.queues>h2 em{font-style:normal;color:var(--lamp)}
+.queues>p{color:var(--dim);max-width:700px;margin-top:8px}
+.queue-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(330px,1fr));gap:18px;margin-top:24px}
+.queue{background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);padding:20px}
+.queue h3{font-family:'Lilita One',cursive;font-size:1.15rem;color:var(--mint);margin-bottom:4px}
+.queue .why{font-size:.85rem;color:var(--dim);margin-bottom:12px}
+.queue ol{list-style:none;counter-reset:q}
+.queue ol li{counter-increment:q;display:flex;gap:10px;padding:6px 0;border-top:1px dashed var(--line);font-size:.9rem;align-items:baseline}
+.queue ol li::before{content:counter(q,decimal-leading-zero);font-family:'Space Mono',monospace;font-size:.7rem;color:var(--lamp)}
+.queue ol li b{font-weight:700}
+.queue ol li span{color:var(--dim);font-size:.8rem}
+
+/* ---------- modal ---------- */
+.overlay{position:fixed;inset:0;background:rgba(8,10,20,.78);backdrop-filter:blur(3px);z-index:80;display:none;align-items:flex-start;justify-content:center;overflow-y:auto;padding:40px 16px}
+.overlay.open{display:flex}
+.sheet{background:var(--panel);border:1px solid var(--line);border-radius:18px;max-width:680px;width:100%;padding:0;overflow:hidden;position:relative;margin:auto 0}
+.sheet-spine{height:10px;background:var(--spine,#888)}
+.sheet-body{padding:28px 30px 30px}
+.sheet h2{font-family:'Lilita One',cursive;font-size:1.9rem;line-height:1.1;padding-right:44px}
+.sheet .meta-row{font-family:'Space Mono',monospace;font-size:.75rem;color:var(--dim);margin:8px 0 16px;display:flex;flex-wrap:wrap;gap:14px}
+.sheet .meta-row b{color:var(--paper)}
+.close{position:absolute;top:18px;right:16px;background:var(--ink);border:1px solid var(--line);color:var(--paper);width:34px;height:34px;border-radius:50%;font-size:1rem;cursor:pointer}
+.close:hover{border-color:var(--coral);color:var(--coral)}
+.sheet section{margin-top:18px}
+.sheet section h4{font-family:'Space Mono',monospace;font-size:.7rem;letter-spacing:.2em;text-transform:uppercase;color:var(--lamp);margin-bottom:6px}
+.sheet section p{font-size:.95rem;color:#D8D2C4}
+.sheet .critic{border-left:3px solid var(--mint);padding-left:12px;font-style:italic}
+.sheet .pair{border-left:3px solid var(--sky);padding-left:12px}
+/* logbook */
+.logbook{margin-top:24px;background:var(--ink);border:1px solid var(--line);border-radius:12px;padding:18px}
+.logbook h4{font-family:'Lilita One',cursive !important;font-size:1.05rem !important;text-transform:none !important;letter-spacing:0 !important;color:var(--paper) !important}
+.log-row{display:flex;flex-wrap:wrap;gap:16px;align-items:center;margin:12px 0}
+.starpick{display:flex;gap:2px}
+.starpick button{background:none;border:none;font-size:1.5rem;color:#3d4560;cursor:pointer;padding:0 2px;transition:color .1s}
+.starpick button.lit{color:var(--lamp)}
+.statuspick{font-family:'Space Mono',monospace;font-size:.75rem}
+.logbook textarea{width:100%;min-height:110px;background:var(--panel);border:1px solid var(--line);border-radius:10px;color:var(--paper);font-family:inherit;font-size:.93rem;padding:12px;resize:vertical;outline:none}
+.logbook textarea:focus{border-color:var(--lamp)}
+.log-actions{display:flex;justify-content:space-between;align-items:center;margin-top:10px;gap:10px;flex-wrap:wrap}
+.savebtn{background:var(--lamp);color:#221503;border:none;font-family:'Nunito Sans',sans-serif;font-weight:800;font-size:.9rem;border-radius:10px;padding:9px 20px;cursor:pointer}
+.savebtn:hover{filter:brightness(1.08)}
+.saved-msg{font-family:'Space Mono',monospace;font-size:.72rem;color:var(--mint);opacity:0;transition:opacity .3s}
+.saved-msg.show{opacity:1}
+.storage-note{font-size:.72rem;color:var(--dim);margin-top:10px}
+
+/* footer */
+footer{margin-top:80px;border-top:1px solid var(--line);padding-top:26px;color:var(--dim);font-size:.82rem;display:flex;justify-content:space-between;flex-wrap:wrap;gap:12px}
+.exportbtn{background:none;border:1px solid var(--line);color:var(--dim);border-radius:8px;padding:6px 14px;font-family:'Space Mono',monospace;font-size:.72rem;cursor:pointer}
+.exportbtn:hover{border-color:var(--mint);color:var(--mint)}
+.count-line{font-family:'Space Mono',monospace;font-size:.78rem;color:var(--dim);margin-top:20px}
+@media (max-width:560px){
+  .sheet-body{padding:22px 18px}
+  h1{font-size:2.4rem}
+}
+</style>
+</head>
+<body>
+<div class="stars" id="stars"></div>
+<main>
+
+<header class="hero">
+  <div class="eyebrow">A collector's field guide &middot; est. game night</div>
+  <h1>Toby's <span class="glow">Switch Shelf</span></h1>
+  <p class="lede">Every cartridge and download on the shelf — cataloged, scored, and ready for the next quiet evening. Tap any case to open its logbook page and leave your own field notes.</p>
+  <div class="shelf-stats" id="shelfStats"></div>
+  <div class="shelf-books" id="shelfBooks" aria-hidden="true"></div>
+  <div class="shelf-edge" aria-hidden="true"></div>
+</header>
+
+<div class="controls">
+  <div class="controls-inner">
+    <label class="search">🔎<input type="search" id="q" placeholder="Search the shelf… (title, developer, genre)" aria-label="Search games"></label>
+    <select id="sort" aria-label="Sort order">
+      <option value="az">A → Z</option>
+      <option value="score">Critic score</option>
+      <option value="year">Newest first</option>
+    </select>
+    <div class="chips" id="chips"></div>
+  </div>
+  <nav class="alpha" id="alpha" aria-label="Jump to letter"></nav>
+</div>
+
+<div id="library"></div>
+<p class="count-line" id="countLine"></p>
+
+<section class="retro" id="retro">
+  <h2>The Retro Cabinet</h2>
+  <p>The Nintendo Classics &amp; Switch Online apps — six whole console libraries hiding inside one shelf. Dig Dug lives here in spirit too. When the backlog feels heavy, twenty minutes of SNES is a legal cheat code.</p>
+  <div class="retro-grid">
+    <div class="retro-item">NES<span>Nintendo Switch Online</span></div>
+    <div class="retro-item">Super Nintendo<span>Nintendo Classics</span></div>
+    <div class="retro-item">Game Boy<span>Nintendo Switch Online</span></div>
+    <div class="retro-item">Nintendo 64<span>Nintendo Classics</span></div>
+    <div class="retro-item">GameCube<span>Nintendo Classics · Switch 2</span></div>
+    <div class="retro-item">Sega Mega Drive<span>Nintendo Switch Online</span></div>
+  </div>
+</section>
+
+<section class="queues" id="queues">
+  <h2>Play <em>Queues</em></h2>
+  <p>Curated orders for the sagas on your shelf, plus pairings that keep a long RPG from swallowing the whole season. The trick to a big library: one main-course game, one palate cleanser, rotate on purpose.</p>
+  <div class="queue-grid" id="queueGrid"></div>
+</section>
+
+<footer>
+  <div>Built for the shelf, not the algorithm. Scores are approximate critic averages (Metacritic/OpenCritic) at time of writing.</div>
+  <button class="exportbtn" id="exportBtn">Export my notes (JSON)</button>
+</footer>
+</main>
+
+<!-- modal -->
+<div class="overlay" id="overlay" role="dialog" aria-modal="true" aria-labelledby="sheetTitle">
+  <div class="sheet" id="sheet">
+    <div class="sheet-spine" id="sheetSpine"></div>
+    <div class="sheet-body">
+      <button class="close" id="closeBtn" aria-label="Close">✕</button>
+      <h2 id="sheetTitle"></h2>
+      <div class="meta-row" id="sheetMeta"></div>
+      <section><h4>About</h4><p id="sheetAbout"></p></section>
+      <section><h4>Critics say</h4><p class="critic" id="sheetCritic"></p></section>
+      <section><h4>Pairs well with</h4><p class="pair" id="sheetPair"></p></section>
+      <div class="logbook">
+        <h4>📓 Paw's Logbook</h4>
+        <div class="log-row">
+          <div class="starpick" id="starPick" aria-label="Your rating"></div>
+          <select class="statuspick" id="statusPick" aria-label="Play status">
+            <option value="">— status —</option>
+            <option>Backlog</option>
+            <option>Playing</option>
+            <option>Finished</option>
+            <option>100%'d</option>
+            <option>Shelved for now</option>
+          </select>
+        </div>
+        <textarea id="noteBox" placeholder="Your thoughts, memories, verdicts… (e.g., 'Beat the final boss with Caden watching — he cheered.')"></textarea>
+        <div class="log-actions">
+          <button class="savebtn" id="saveBtn">Save entry</button>
+          <span class="saved-msg" id="savedMsg">Saved to the logbook ✓</span>
+        </div>
+        <p class="storage-note">Notes save in this browser (localStorage) once the page is hosted. In a temporary preview they may not persist — use Export in the footer to back them up.</p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+/* ============ GENRE SPINE COLORS ============ */
+const SPINE = {
+  "RPG":"#8E6FE3","Action":"#FF5D5D","Metroidvania":"#4DA3FF","Platformer":"#FFB84D",
+  "Cozy":"#6FE3C1","Adventure":"#E3B24D","Narrative":"#E36FB0","Shooter":"#C0452F",
+  "Roguelite":"#B0E34D","Puzzle":"#4DE3D9","Visual Novel":"#E36F6F","Strategy":"#9BB0C9",
+  "Fighting":"#E34D4D","Racing":"#4DE36F","Open World":"#6F8EE3","Sim":"#8FBF6F","Classic":"#B08968"
+};
+/* ============ THE LIBRARY ============ */
+/* s = approx critic score (Metacritic/OpenCritic style). e = ESRB. */
+const GAMES = [
+{t:"AI: The Somnium Files",y:2019,d:"Spike Chunsoft",g:["Visual Novel","Adventure"],e:"M",s:80,
+ a:"A neo-noir detective adventure where you dive into suspects' dreams (Somnium) to crack a bizarre serial case. Equal parts absurd comedy and genuinely clever mystery plotting.",
+ c:"Praised for its wild branching narrative and memorable cast; a cult favorite among mystery fans.",
+ p:"The Somnium Files pairs naturally with its sequel nirvanA Initiative — play this one first, the sequel spoils it heavily."},
+{t:"AI: The Somnium Files — nirvanA Initiative",y:2022,d:"Spike Chunsoft",g:["Visual Novel","Adventure"],e:"M",s:79,
+ a:"The sequel: a body is found split in half, six years apart. A puzzle-box mystery built around one audacious central trick, with returning investigators and new Somnium dives.",
+ c:"Critics called the central mystery ingenious, with sharper puzzles than the original.",
+ p:"Strictly after the first game. Afterward, cool down with Blue Prince to keep the mystery streak alive."},
+{t:"Bayonetta",y:2018,d:"PlatinumGames",g:["Action"],e:"M",s:84,
+ a:"PlatinumGames' witch-fueled character-action classic — dodge at the last instant to trigger Witch Time and dismantle angelic hordes with style. The Switch port runs beautifully.",
+ c:"Widely regarded as one of the best action games ever made; the combat system still sets the bar.",
+ p:"The obvious warm-up for Bayonetta 2. Alternate with something calm like Cast n Chill — your thumbs will need it."},
+{t:"Bayonetta 2",y:2018,d:"PlatinumGames",g:["Action"],e:"M",s:92,
+ a:"Bigger, faster, more generous than the original — many consider it Platinum's masterpiece. Umbran Climax turns every encounter into a fireworks show.",
+ c:"One of the highest-rated action games on the platform; reviewers loved its pacing and spectacle.",
+ p:"Play right after Bayonetta 1. DOOM Eternal is the natural next stop for high-skill action."},
+{t:"Blasphemous",y:2019,d:"The Game Kitchen",g:["Metroidvania","Action"],e:"M",s:78,
+ a:"A brutal pixel-art Metroidvania soaked in Spanish Catholic folklore and penitent imagery. Punishing combat, gorgeous grotesque art, heavy atmosphere.",
+ c:"Reviewers praised the striking art direction and atmosphere, with some friction around platforming precision.",
+ p:"Blasphemous II refines nearly everything — play 1 first for the story, and slot Hollow Knight nearby for contrast in tone."},
+{t:"Blasphemous II",y:2023,d:"The Game Kitchen",g:["Metroidvania","Action"],e:"M",s:84,
+ a:"The sequel smooths the rough edges: three starting weapons, better movement, more forgiving exploration, same haunting Sevillian art.",
+ c:"Broadly considered a superior sequel — tighter combat and smarter map design.",
+ p:"After Blasphemous 1. Then you're properly trained for Silksong."},
+{t:"Blue Prince",y:2025,d:"Dogubomb",g:["Puzzle","Adventure"],e:"E10+",s:92,
+ a:"Inherit a manor with 45 rooms — but you draft the floor plan yourself, one door at a time, and it resets daily. A roguelite puzzle box that quietly became one of 2025's most acclaimed games.",
+ c:"One of the best-reviewed games of 2025; critics called it a genre-defying masterpiece of layered secrets.",
+ p:"Perfect 'thinking game' to alternate with a long RPG. Fans of AI: Somnium Files' puzzle-box plotting will feel at home."},
+{t:"Borderlands: Game of the Year Edition",y:2020,d:"Gearbox",g:["Shooter","RPG"],e:"M",s:80,
+ a:"Where the loot-shooter genre took off: Pandora, bazillions of guns, four vault hunters, and that unmistakable cel-shaded look. GOTY edition bundles all DLC.",
+ c:"The original was praised for co-op chaos and loot compulsion; it aged a bit but the loop still works.",
+ p:"Play in release order: BL1 → BL2 → Pre-Sequel. Great couch/handheld co-op if Tate or Tanner visit."},
+{t:"Borderlands 2: Game of the Year Edition",y:2020,d:"Gearbox",g:["Shooter","RPG"],e:"M",s:91,
+ a:"The series' high-water mark, largely thanks to Handsome Jack — one of gaming's great villains. Sharper writing, better loot, enormous DLC library included.",
+ c:"Consistently ranked the best Borderlands; Handsome Jack's writing gets singled out even a decade later.",
+ p:"The main course of the trilogy. Follow with The Pre-Sequel for the Jack backstory."},
+{t:"Borderlands: The Pre-Sequel — Ultimate Edition",y:2020,d:"Gearbox / 2K Australia",g:["Shooter","RPG"],e:"M",s:75,
+ a:"Set on Pandora's moon between BL1 and BL2 — low gravity, oxygen kits, butt-slams, and the story of how Jack became Handsome Jack.",
+ c:"Seen as the lesser entry but a fun one; the low-gravity movement is its best trick.",
+ p:"Best played after BL2, since it's really Jack's origin story."},
+{t:"Brotato — Nintendo Switch 2 Edition",y:2025,d:"Blobfish",g:["Roguelite","Action"],e:"E10+",s:80,
+ a:"A potato wielding up to six weapons at once survives waves of aliens in tight, snacky runs. Pure arena-roguelite dopamine — runs take minutes, builds get absurd.",
+ c:"Beloved as one of the best 'one more run' games of its class; the Switch 2 Edition runs silky smooth.",
+ p:"The ultimate palate cleanser between story games. Shares DNA with Hades' build experimentation at 10% of the commitment."},
+{t:"Cast n Chill",y:2025,d:"Wombat Brawler",g:["Cozy","Sim"],e:"E",s:82,
+ a:"A two-button pixel-art fishing game from a two-person Aussie studio: you, a boat, a dog to pet, and some of the most gorgeous pixel water ever drawn. Even idles for you when life calls.",
+ c:"Nintendo Life called it a very worthwhile catch with fin-tastic vibes; reviewers keep calling the pixel art class-leading.",
+ p:"Your dedicated wind-down game. Pairs with literally everything heavy on this shelf — Witcher session, then this before bed."},
+{t:"Celeste",y:2018,d:"Extremely OK Games",g:["Platformer"],e:"E10+",s:92,
+ a:"Madeline climbs a mountain, one brutal-but-fair screen at a time, in a story about anxiety and self-acceptance that lands as hard as the platforming. Generous assist options.",
+ c:"A modern classic — near-universal acclaim for both its precision gameplay and its heart.",
+ p:"The gold standard before attempting Silksong's tougher platforming. Shotgun Cop Man's reviewers name-check Celeste constantly."},
+{t:"Coffee Talk",y:2020,d:"Toge Productions",g:["Visual Novel","Cozy"],e:"T",s:78,
+ a:"You're a late-night barista in a rainy Seattle where elves and orcs have ordinary problems. Brew drinks, listen well, watch small kindnesses change lives. Lo-fi soundtrack included.",
+ c:"Praised as a warm, human little game — comfort food with surprisingly thoughtful writing.",
+ p:"A one-cup-per-evening game. Natural companion to Spiritfarer for cozy-with-depth nights."},
+{t:"Crisis Core: Final Fantasy VII — Reunion",y:2022,d:"Square Enix",g:["RPG","Action"],e:"T",s:80,
+ a:"Zack Fair's story — the prequel to FFVII, fully remastered with modernized combat. Ends at one of the most affecting moments in the whole saga.",
+ c:"Reviewers called it a faithful, polished revival; the DMW slot-machine system remains divisive but charming.",
+ p:"Chronologically FIRST in the FFVII saga. Start here, then original FFVII, then Remake, then Rebirth."},
+{t:"Cuphead",y:2019,d:"Studio MDHR",g:["Action","Platformer"],e:"E",s:88,
+ a:"A run-and-gun boss gauntlet hand-drawn in authentic 1930s rubber-hose animation. Every frame is a museum piece; every boss is a lesson in humility.",
+ c:"Universally admired for its art and animation; difficulty is steep but fair, and co-op softens it.",
+ p:"Great co-op with visiting family. Alternate attempts with GRIS when your blood pressure needs the opposite experience."},
+{t:"Cyberpunk 2077: Ultimate Edition",y:2025,d:"CD Projekt Red",g:["RPG","Open World","Shooter"],e:"M",s:85,
+ a:"Night City in your hands — the fully patched 2.x game plus Phantom Liberty, and the Switch 2 port is genuinely one of the most impressive handheld conversions ever shipped.",
+ c:"The Switch 2 version drew wide praise as a technical marvel; the game itself completed one of gaming's great redemption arcs.",
+ p:"A 'main course' game. Heads-up: heavy mature content throughout. Pair with Stardew as the decompression chamber."},
+{t:"Dead Cells",y:2018,d:"Motion Twin",g:["Roguelite","Metroidvania","Action"],e:"T",s:89,
+ a:"A kinetic roguelite where death feeds progress — new weapons, routes, and mutations every run. Combat so fluid it ruined slower action games for a generation of players.",
+ c:"One of the most acclaimed roguelites ever; years of free updates made it absurdly content-rich.",
+ p:"The bridge between your Metroidvanias and Hades. Perfect 20-minute-run handheld game."},
+{t:"Disco Elysium: The Final Cut",y:2021,d:"ZA/UM",g:["RPG","Narrative"],e:"M",s:88,
+ a:"An amnesiac detective wakes in a trashed hostel room and must solve a murder — and himself. No combat; your skills are 24 warring voices in your head. Some of the best prose ever put in a game.",
+ c:"Frequently cited among the greatest RPGs ever written; the Final Cut adds full voice acting.",
+ p:"Demands your full attention — don't split it with another narrative game. Sherlock Holmes C&P is the lighter detective follow-up."},
+{t:"Dispatch — Nintendo Switch 2 Edition",y:2026,d:"AdHoc Studio",g:["Narrative","Adventure"],e:"M",s:87,
+ a:"From four Telltale veterans: you're Robert Robertson, a suitless superhero managing a dispatch team of reformed villains. A superhero workplace comedy-drama with an Aaron Paul-led cast.",
+ c:"Nintendo Life called it a cracking superhero caper; the 2025 original was a serious game-of-the-year contender.",
+ p:"Fair warning: strong language and mature themes (Nintendo versions censor the visuals). Plays like a great TV season — 8 episodes, one per evening."},
+{t:"Donkey Kong Bananza",y:2025,d:"Nintendo EPD",g:["Platformer","Action"],e:"E10+",s:91,
+ a:"DK's Switch 2 showcase: punch through terrain itself, tunneling and smashing entire layers of the world. The most gleefully destructive Nintendo game in years.",
+ c:"Acclaimed as a Switch 2 system-seller — reviewers loved the destruction tech and pure playfulness.",
+ p:"Prime Caden co-pilot material when he's a bit older — the second player can assist. Pairs with Mario Kart World for family Nintendo nights."},
+{t:"DOOM (2016)",y:2017,d:"id Software",g:["Shooter","Action"],e:"M",s:85,
+ a:"The reboot that remembered DOOM is about speed and aggression: glory kills, push-forward combat, and a metal soundtrack that became legend.",
+ c:"Universally credited with revitalizing the classic shooter; the Switch port was a technical eyebrow-raiser.",
+ p:"Play before DOOM Eternal, which assumes you've internalized this game's rhythm."},
+{t:"DOOM Eternal",y:2020,d:"id Software",g:["Shooter","Action"],e:"M",s:88,
+ a:"DOOM turned into a high-speed resource-management ballet — chainsaw for ammo, flame for armor, glory kills for health. Demanding and exhilarating.",
+ c:"Praised as one of the best pure shooters of its generation; more complex than 2016, and prouder of it.",
+ p:"After DOOM 2016. Bayonetta 2 scratches the same mastery itch in melee form."},
+{t:"Ender Lilies: Quietus of the Knights",y:2021,d:"Live Wire / Adglobe",g:["Metroidvania"],e:"T",s:83,
+ a:"A white-haired priestess purifies corrupted knights who then fight beside her, in a rain-soaked ruined kingdom. Melancholy, beautiful, and mechanically generous for the genre.",
+ c:"A sleeper hit — praised for its haunting soundtrack and approachable-but-deep design.",
+ p:"The gentlest on-ramp among your Metroidvanias. Good preparation for Blasphemous's harder edges."},
+{t:"Final Fantasy VII",y:2019,d:"Square",g:["RPG","Classic"],e:"T",s:92,
+ a:"The 1997 landmark itself, with quality-of-life toggles (3x speed, no encounters). Cloud, Aerith, Sephiroth, Midgar — the JRPG that changed everything, playable anywhere.",
+ c:"One of the most influential games ever made; the Switch port is the easiest way to experience it today.",
+ p:"Saga order: Crisis Core → THIS → Remake Intergrade → Rebirth. The speed-up toggle makes it very handheld-friendly."},
+{t:"Final Fantasy VII Remake Intergrade",y:2026,d:"Square Enix",g:["RPG","Action"],e:"T",s:89,
+ a:"Midgar rebuilt as a full 40-hour game with a stunning hybrid action/ATB battle system — plus Yuffie's INTERmission episode. The Switch 2 version brings it portable at last.",
+ c:"Acclaimed for its combat system and its bold, self-aware relationship with the original's story.",
+ p:"After the 1997 original (the remakes reward you enormously for knowing it). Then straight into Rebirth."},
+{t:"Final Fantasy VII Rebirth",y:2026,d:"Square Enix",g:["RPG","Action","Open World"],e:"T",s:92,
+ a:"Part two: the party leaves Midgar into a huge open world stuffed with minigames, and the Gold Saucer date and THAT ending await. One of the most acclaimed RPGs of its generation.",
+ c:"Widely rated among the best JRPGs of the decade — critics loved its abundance and heart.",
+ p:"The finale of your FFVII queue (until part 3). Budget 80+ hours; keep Brotato nearby for short-session relief."},
+{t:"GRIS",y:2018,d:"Nomada Studio",g:["Adventure","Puzzle"],e:"E",s:83,
+ a:"A wordless watercolor journey through grief, where each recovered color changes how the world moves. More meditation than challenge — and one of the most beautiful games ever drawn.",
+ c:"Praised as playable art; its animation and score do the storytelling.",
+ p:"A single-evening experience. Play before Neva — same studio, and you'll see how they grew."},
+{t:"Hades",y:2020,d:"Supergiant Games",g:["Roguelite","Action","RPG"],e:"T",s:93,
+ a:"Zagreus fights out of the Underworld over and over, and the story deepens with every death. The game that made roguelite structure serve narrative instead of fighting it.",
+ c:"One of the most decorated games of its era — near-perfect scores across the board.",
+ p:"Finish (or at least credits-roll) Hades before Hades II. Dead Cells fans feel instantly at home."},
+{t:"Hades II — Nintendo Switch 2 Edition",y:2025,d:"Supergiant Games",g:["Roguelite","Action","RPG"],e:"T",s:94,
+ a:"Melinoë, witch-princess of the Underworld, hunts Chronos himself. Bigger than the original in every direction — two full route branches, deeper magic, same impossible charm.",
+ c:"Scored even higher than the original at 1.0 — a rare sequel that critics called better than a masterpiece.",
+ p:"After Hades 1 for full story payoff. This is a 'main rotation' game; it will happily eat a season."},
+{t:"Harvestella",y:2022,d:"Square Enix / Live Wire",g:["RPG","Sim","Cozy"],e:"T",s:71,
+ a:"Square's take on farming-life-meets-JRPG: tend crops by day, delve dungeons and unravel an apocalyptic seasonal mystery by night. Slow burn with a surprisingly ambitious story.",
+ c:"Mixed-to-positive — critics liked the story ambition more than the farming pace.",
+ p:"If Stardew is your comfort farm, this is the 'farm with a plot twist.' Don't run both farming games at once."},
+{t:"Hogwarts Legacy",y:2023,d:"Avalanche Software",g:["RPG","Open World","Adventure"],e:"T",s:80,
+ a:"An open-world 1890s Hogwarts you can actually attend — classes, common rooms, broom flight, and a full wizard-crime plot. The castle itself is the star.",
+ c:"Praised for world-building and atmosphere; the Switch port trades visuals for portability.",
+ p:"A big cozy-adventure hybrid. Alternates well with a fast game like Dead Cells rather than another open world."},
+{t:"Hollow Knight",y:2018,d:"Team Cherry",g:["Metroidvania","Action"],e:"E10+",s:90,
+ a:"Hallownest: a fallen bug kingdom of staggering scope, sold for pocket change and packed with 40+ hours of secrets. The consensus best Metroidvania of its generation.",
+ c:"An all-time indie great — atmosphere, combat, and map design all considered genre-defining.",
+ p:"Mandatory before Silksong. Your SteamWorld Dig games are the warm-up act; this is the headliner."},
+{t:"Hollow Knight: Silksong — Nintendo Switch 2 Edition",y:2025,d:"Team Cherry",g:["Metroidvania","Action"],e:"E10+",s:92,
+ a:"Seven years of waiting, worth it: Hornet's faster, more acrobatic journey through the kingdom of Pharloom. Harder, prettier, and enormous.",
+ c:"Acclaimed on arrival — critics called it a worthy successor, with difficulty spikes the only common gripe.",
+ p:"After Hollow Knight, and honestly after a Celeste refresher. The victory lap of your entire Metroidvania queue."},
+{t:"Mario Kart World",y:2025,d:"Nintendo EPD",g:["Racing"],e:"E",s:86,
+ a:"The Switch 2 launch flagship: 24-player races across one interconnected open world, with Knockout Tour elimination chaos and free-roam between tracks.",
+ c:"Reviewers praised the ambition and Knockout Tour; the series' biggest structural shake-up ever.",
+ p:"The permanent family-night game. Grandson-approved chaos when Caden's old enough to hold a wheel."},
+{t:"My Friend Pedro",y:2019,d:"DeadToast Entertainment",g:["Action","Platformer","Shooter"],e:"M",s:80,
+ a:"A sentient banana talks you through balletic slow-motion gun-fu across side-scrolling levels. Every kill is a stunt; every level ends wanting a replay for style points.",
+ c:"Praised as gloriously absurd action — short, stylish, and rewatchable.",
+ p:"The DeadToast double feature: this, then Shotgun Cop Man to see the same dev distill it further."},
+{t:"Neva",y:2024,d:"Nomada Studio",g:["Adventure","Platformer"],e:"E10+",s:85,
+ a:"From the GRIS team: a woman and a wolf cub grow together across seasons in a dying, breathtaking world. Adds real combat to the studio's painterly formula. It will move you.",
+ c:"Critics called it a gorgeous, emotional evolution of GRIS — several review teams admitted to tears.",
+ p:"Play GRIS first, then this — a perfect two-evening arc. Keep tissues within reach."},
+{t:"NieR: Automata — The End of YoRHa Edition",y:2022,d:"PlatinumGames / Square Enix",g:["Action","RPG"],e:"M",s:88,
+ a:"Androids 2B and 9S fight machines on a ruined Earth in a game that reinvents itself across multiple 'endings' — Route A is only the prologue. Philosophical, strange, unforgettable.",
+ c:"A modern classic; critics insist you play to Ending E, and they're right.",
+ p:"Yoko Taro's melancholy pairs oddly well with GRIS/Neva. Do NOT stop after the first credits."},
+{t:"No Man's Sky — Nintendo Switch 2 Edition",y:2025,d:"Hello Games",g:["Adventure","Open World","Sim"],e:"T",s:82,
+ a:"An entire procedurally-generated universe in handheld: 18 quintillion planets, base-building, fleets, and a decade of free updates that turned a rocky launch into a beloved sandbox.",
+ c:"The redemption story of modern gaming; the Switch 2 edition is the best portable version yet.",
+ p:"A 'forever game' — treat it like Cast n Chill's big brother: a place to visit, not a list to finish."},
+{t:"Octopath Traveler",y:2018,d:"Square Enix / Acquire",g:["RPG"],e:"T",s:83,
+ a:"The game that invented HD-2D: eight travelers, eight stories, one gorgeous diorama world. The Break & Boost battle system remains one of the best turn-based designs ever.",
+ c:"Praised for its visuals and combat; the loosely-connected stories divide people. You're mid-journey — finish strong.",
+ p:"CURRENTLY PLAYING. When done, Octopath 0 awaits as the prequel that ties the world together."},
+{t:"Octopath Traveler 0",y:2025,d:"Square Enix / DokiDoki GrooveWorks",g:["RPG"],e:"T",s:84,
+ a:"A prequel with a created protagonist, a burned village to rebuild, and eight-character battles. The most unified story in the series, plus town-building on the side.",
+ c:"Metacritic ~85 — several outlets called it the most accomplished entry yet, with the strongest narrative in the series.",
+ p:"Perfect follow-up to finishing Octopath 1 — same world (Orsterra), set before it all."},
+{t:"Ori and the Will of the Wisps",y:2020,d:"Moon Studios",g:["Metroidvania","Platformer"],e:"E",s:90,
+ a:"A luminous forest spirit's second adventure — faster combat, heart-wrenching story, and some of the most stunning animation in games. The Switch port is miraculous.",
+ c:"Widely rated among the most beautiful games ever; the Switch version drew special praise.",
+ p:"The 'beautiful' pole of your Metroidvania collection, opposite Blasphemous's 'brutal' pole. Family-safe, too."},
+{t:"Paper Mario: The Thousand-Year Door",y:2024,d:"Intelligent Systems",g:["RPG"],e:"E",s:88,
+ a:"The beloved GameCube RPG remade with a storybook glow — sharp comic writing, timing-based battles on a literal stage, and Mario's best supporting cast.",
+ c:"Hailed as a lovingly faithful remake of the series' peak.",
+ p:"The lighthearted counterweight to your Persona games. Wonderful 'one chapter per evening' pacing."},
+{t:"Persona 3 Reload",y:2025,d:"Atlus",g:["RPG"],e:"M",s:87,
+ a:"The remake of the game that created the modern Persona formula: school by day, Tartarus by night, and a story that looks death square in the eye. Memento mori.",
+ c:"Praised as a gorgeous, faithful modernization with the series' most affecting themes.",
+ p:"Persona games are standalone — but P3's heavier tone lands best after the warmer P4 Golden. Any order works."},
+{t:"Persona 4 Golden",y:2023,d:"Atlus",g:["RPG"],e:"M",s:89,
+ a:"A rural-town murder mystery solved by teenagers who dive into a TV. The coziest, funniest Persona — a year of small-town life with friends you'll genuinely miss afterward.",
+ c:"A perennial 'best RPG ever' list member; Golden is the definitive version.",
+ p:"The warmest entry point to Persona. Its small-town rhythm pairs beautifully with Stardew Valley energy."},
+{t:"Persona 5 Royal",y:2022,d:"Atlus",g:["RPG"],e:"M",s:94,
+ a:"The Phantom Thieves steal corrupt hearts in the most stylish RPG ever produced — every menu is a work of art. Royal adds a whole third semester. 100+ hours, all of it slick.",
+ c:"One of the highest-rated JRPGs of all time.",
+ p:"The crown jewel of your RPG shelf. Commit a season to it; run Brotato or Dead Cells alongside for short nights."},
+{t:"Prince of Persia: The Lost Crown",y:2024,d:"Ubisoft Montpellier",g:["Metroidvania","Action","Platformer"],e:"T",s:86,
+ a:"Ubisoft's shockingly excellent Metroidvania: time powers, razor-sharp platforming, and a memory system that screenshots the map for you (every genre game should steal it).",
+ c:"Widely called 2024's best Metroidvania and one of Ubisoft's best games in years.",
+ p:"Slots perfectly between Ori (beauty) and Silksong (challenge) in your queue."},
+{t:"Red Dead Redemption",y:2023,d:"Rockstar Games",g:["Action","Open World","Adventure"],e:"M",s:85,
+ a:"John Marston's hunt for his old gang across the dying frontier — one of gaming's great American stories, ported to Switch with Undead Nightmare included.",
+ c:"The 2010 original is an all-timer (95 on release); the straightforward port earned more modest scores.",
+ p:"A slow-burn evening game. Its Western melancholy pairs with Spiritfarer's gentler meditations on endings."},
+{t:"Samurai Maiden",y:2022,d:"Shade Inc.",g:["Action"],e:"T",s:62,
+ a:"A high-schooler is summoned to Sengoku-era Japan to fight the undead alongside three ninja companions. Light, anime-flavored hack-and-slash comfort food.",
+ c:"Middling reviews — simple combat, cheerful tone. A popcorn game.",
+ p:"Zero-commitment palate cleanser after something heavy like NieR or Disco Elysium."},
+{t:"Scott Pilgrim vs. The World: The Game",y:2021,d:"Ubisoft",g:["Action","Classic"],e:"T",s:74,
+ a:"The cult River City-style beat-'em-up returned from delisting purgatory: pixel-perfect style, an Anamanaguchi chiptune soundtrack for the ages, and 4-player couch chaos.",
+ c:"Nostalgia done right — critics loved the art and music, noted the old-school repetition.",
+ p:"Party-night material with the kids. Pairs with Street Fighter 6 for a full versus/co-op evening."},
+{t:"Sherlock Holmes: Crimes & Punishments",y:2022,d:"Frogwares",g:["Adventure","Narrative"],e:"M",s:79,
+ a:"Six self-contained cases where YOUR deductions decide who gets accused — and you can get it wrong. The best 'actually being Sherlock' simulator ever made.",
+ c:"Widely considered Frogwares' finest — the deduction board is the star.",
+ p:"Play before The Awakened. Ideal 'one case per evening' structure for weeknights."},
+{t:"Sherlock Holmes: The Awakened",y:2023,d:"Frogwares",g:["Adventure","Narrative"],e:"M",s:73,
+ a:"Young Holmes meets Lovecraft: a rebuilt remake where the world's most rational mind confronts a Cthulhu cult. Made by the Ukrainian studio during wartime, remarkably.",
+ c:"Solid if uneven — praised for atmosphere and ambition given its development circumstances.",
+ p:"The darker follow-up to Crimes & Punishments. Content note: occult horror themes throughout."},
+{t:"Shin Megami Tensei V: Vengeance",y:2024,d:"Atlus",g:["RPG"],e:"M",s:86,
+ a:"Persona's harder-edged parent series: post-apocalyptic Tokyo, demon negotiation, and the punishing-but-brilliant press-turn battle system. Vengeance adds an entire new story route.",
+ c:"Called the definitive version and one of the best pure turn-based combat systems available.",
+ p:"For when Persona's social life is the part you'd skip. Content note: heavy religious/demonic mythology remixed freely — know that going in."},
+{t:"Shotgun Cop Man",y:2025,d:"DeadToast Entertainment",g:["Platformer","Action"],e:"M",s:81,
+ a:"You can't jump — your shotgun's recoil IS your jump. From the My Friend Pedro dev: 150+ levels of propulsive precision-platforming to go arrest Satan. Absurd and airtight.",
+ c:"OpenCritic 81; Nintendo Life said it stands toe-to-toe with Super Meat Boy and Celeste and predicted cult-classic status.",
+ p:"The natural chaser to My Friend Pedro. Celeste veterans will feel the same 'one more level' pull."},
+{t:"South of Midnight — Weaver's Edition",y:2025,d:"Compulsion Games",g:["Action","Adventure","Narrative"],e:"T",s:79,
+ a:"A Southern Gothic fable: Hazel becomes a Weaver, mending the torn spiritual fabric of a mythic American Deep South, in a striking stop-motion-styled world. (Your Digital Extras pack rides along.)",
+ c:"Praised for its setting, music, and folklore — a genuinely fresh backdrop for games.",
+ p:"Story-first, ~12 hours — a great between-epics game. The folk-tale tone pairs with Spiritfarer."},
+{t:"Spiritfarer",y:2020,d:"Thunder Lotus",g:["Cozy","Sim","Adventure"],e:"T",s:84,
+ a:"You're Stella, ferrymaster to the deceased: build a boat, care for spirits, and — when they're ready — carry them to the Everdoor. A management game about saying goodbye well.",
+ c:"Praised as one of the most emotionally mature cozy games ever made.",
+ p:"The deepest of your cozy titles. Gentle warning from everyone who's played: certain farewells hit hard."},
+{t:"Stardew Valley — Nintendo Switch 2 Edition",y:2025,d:"ConcernedApe",g:["Cozy","Sim","RPG"],e:"E10+",s:89,
+ a:"The farm that conquered the world — one developer, a decade of free updates, and the most restorative gameplay loop ever coded. The Switch 2 Edition is its best portable home.",
+ c:"A permanent resident of best-games-ever lists.",
+ p:"The anchor of your cozy rotation. Traci co-op is fully supported, for the record."},
+{t:"SteamWorld Dig",y:2013,d:"Image & Form",g:["Metroidvania","Platformer"],e:"E10+",s:82,
+ a:"Rusty the steambot inherits a mine and digs ever deeper — a tight, satisfying loop of excavate, upgrade, repeat. Short, charming, and the seed of a whole steampunk universe.",
+ c:"A beloved indie staple; the digging loop is famously moreish.",
+ p:"First in the SteamWorld order: Dig → Dig 2 → Heist. A perfect weekend game."},
+{t:"SteamWorld Dig 2",y:2017,d:"Image & Form",g:["Metroidvania","Platformer"],e:"E10+",s:88,
+ a:"Dorothy searches for Rusty in a sequel that improves everything — proper Metroidvania structure, grappling hook, jetpack, and one of the most satisfying upgrade curves around.",
+ c:"Widely called one of the best games in the genre's second tier — pure polish.",
+ p:"After Dig 1. Then Heist for a completely different genre in the same world."},
+{t:"SteamWorld Heist",y:2016,d:"Image & Form",g:["Strategy"],e:"E10+",s:84,
+ a:"Same steambot universe, totally different game: side-view turn-based tactics where you manually aim ricochet shots. Skill-based XCOM-lite with space pirates and great hats.",
+ c:"Praised for making turn-based tactics feel like a skill game.",
+ p:"The strategy outlier on your shelf — great for when you want thinking, not reflexes."},
+{t:"Stray",y:2025,d:"BlueTwelve Studio",g:["Adventure","Puzzle"],e:"E10+",s:83,
+ a:"You are a cat, lost in a walled cybercity of robots, with a drone buddy and a dedicated meow button. Short, atmospheric, and exactly as charming as the premise promises.",
+ c:"Praised for its world and its uncannily authentic cat-ness.",
+ p:"A one-weekend delight. Fellow short-and-beautiful shelf-mates: GRIS, Neva."},
+{t:"Street Fighter 6",y:2025,d:"Capcom",g:["Fighting"],e:"T",s:90,
+ a:"The best Street Fighter in decades — Drive system depth for pros, Modern controls so anyone can actually do a Hadoken, and a full World Tour single-player mode.",
+ c:"Acclaimed as a generational fighting game; the Switch 2 port holds up well.",
+ p:"Family versus nights with Scott Pilgrim as the co-op opener. Modern controls = instant grandson accessibility someday."},
+{t:"Super Mario Odyssey",y:2017,d:"Nintendo EPD",g:["Platformer"],e:"E10+",s:97,
+ a:"Mario's globe-trotting masterpiece — throw Cappy, become anything, collect moons in kingdoms bursting with secrets. Still the highest-rated game on your entire shelf.",
+ c:"97 on Metacritic. Enough said.",
+ p:"If it's somehow unfinished, it jumps the whole queue. Assist Mode makes it a genuine play-with-Caden option."},
+{t:"The Legend of Zelda: Skyward Sword HD",y:2021,d:"Nintendo",g:["Adventure","Action"],e:"E10+",s:81,
+ a:"The origin story of the Master Sword, remastered with proper button controls. The most linear 3D Zelda, but home to some of the series' best dungeons and its sweetest Zelda.",
+ c:"The HD version fixed most of the Wii original's friction; dungeon design praised as top-tier.",
+ p:"Chronologically the FIRST Zelda story, if that ever matters to a timeline conversation with the boys."},
+{t:"The Witcher 3: Wild Hunt — Complete Edition",y:2019,d:"CD Projekt Red",g:["RPG","Open World"],e:"M",s:90,
+ a:"Geralt's hunt for Ciri across a war-torn continent — 150+ hours with both expansions, and Blood and Wine alone is better than most full games. The Switch port remains a marvel.",
+ c:"A consensus greatest-game-of-all-time candidate; the 'Switcher' port earned its own legend.",
+ p:"The deepest well on your shelf. Heavy mature content throughout. Pair with Cast n Chill decompression."},
+{t:"Tomb Raider IV–VI Remastered",y:2025,d:"Aspyr / Crystal Dynamics",g:["Adventure","Action","Classic"],e:"M",s:71,
+ a:"The Last Revelation, Chronicles, and the infamous Angel of Darkness — preserved warts-and-all with toggleable modern visuals. A time capsule of tank-controls Lara.",
+ c:"Praised as preservation, dinged for keeping the originals' rough edges (that's the point, though).",
+ p:"For patient retro appetites. The photo-mode-friendly remaster suits your photography eye."},
+{t:"Vigil: The Longest Night",y:2020,d:"Glass Heart Games",g:["Metroidvania","Action"],e:"T",s:73,
+ a:"A Salt-and-Sanctuary-styled dark Metroidvania steeped in Taiwanese folklore, following vigilante Leila home to a town where night refuses to end.",
+ c:"A hidden gem to its fans — moody, distinct, a bit rough in places.",
+ p:"Deep-cut material for after the marquee Metroidvanias. Its folklore angle echoes South of Midnight."},
+{t:"Yakuza 0 — Director's Cut",y:2025,d:"Ryu Ga Gotoku Studio",g:["Action","RPG","Narrative"],e:"M",s:85,
+ a:"1988 Tokyo and Osaka: a crime epic that swings between gut-punch drama and karaoke-singing, chicken-managing absurdity. The series' best entry point, upgraded for Switch 2.",
+ c:"Yakuza 0 is routinely called one of the best games of its decade; the Director's Cut adds new scenes and English dub.",
+ p:"Fair warning: cabaret/adult themes woven through the (excellent) crime story. Alternate chapters with something light."},
+{t:"Yes, Your Grace",y:2020,d:"Brave At Night",g:["Strategy","Narrative","Sim"],e:"T",s:71,
+ a:"You are King Eryk: each week, petitioners line up with problems, and your gold, supplies, and daughters' futures can't cover them all. A kingdom-management game about being a father first.",
+ c:"Praised for making resource management genuinely emotional.",
+ p:"Short, story-rich, and thoughtful — a great single-week game. Fathers of daughters report it hits different."}
+];
+
+/* ============ PLAY QUEUES ============ */
+const QUEUES = [
+ {n:"The FFVII Saga — Chronological",w:"The whole tragedy of Zack, Cloud, and Sephiroth in story order. The remakes reward knowing the original deeply.",
+  s:[["Crisis Core: Reunion","Zack's story — the beginning"],["Final Fantasy VII (1997)","the landmark itself (use 3x speed!)"],["FFVII Remake Intergrade","Midgar, reborn"],["FFVII Rebirth","the open world & the Gold Saucer"]]},
+ {n:"The Metroidvania Ladder",w:"Climb from gentle to brutal. Each rung trains you for the next; Silksong is the summit.",
+  s:[["SteamWorld Dig 1 → 2","the friendly on-ramp"],["Ender Lilies","atmosphere + forgiving design"],["Ori: Will of the Wisps","beauty with bite"],["Prince of Persia: The Lost Crown","modern precision"],["Hollow Knight","the masterpiece"],["Blasphemous 1 → 2","the penance"],["Silksong","the summit"]]},
+ {n:"The Cozy Rotation",w:"Not a queue — a rotation. Keep one of these live at all times as the decompression chamber after work or a heavy RPG session.",
+  s:[["Cast n Chill","before-bed fishing (it even idles)"],["Stardew Valley","the anchor farm"],["Spiritfarer","cozy with real emotional weight"],["Coffee Talk","one cup per evening"],["GRIS → Neva","two beautiful single-evenings"]]},
+ {n:"Supergiant & Friends — Roguelite Track",w:"Death-as-progress games, in escalating commitment order. All are perfect in handheld 20-minute bursts.",
+  s:[["Brotato","6-minute runs, zero stakes"],["Dead Cells","the fluid middle ground"],["Hades","story-driven perfection"],["Hades II","the even-better sequel"]]},
+ {n:"The Atlus Wing",w:"Each Persona is standalone — order is preference, but this warmth-to-darkness arc flows well. SMT V is the hard-mode dessert.",
+  s:[["Persona 4 Golden","the warm small-town one"],["Persona 5 Royal","the stylish 100-hour crown jewel"],["Persona 3 Reload","the heavy, beautiful one"],["SMT V: Vengeance","pure combat, no classroom"]]},
+ {n:"DeadToast Double Feature",w:"Same one-man Swedish studio, same DNA: guns as movement, style as reward. A great short-game palate cleanse.",
+  s:[["My Friend Pedro","slow-mo gun ballet"],["Shotgun Cop Man","recoil IS your jump"]]},
+ {n:"The Detective Bureau",w:"For mystery evenings. One case at a time; keep a real notepad nearby for Blue Prince — you'll need it.",
+  s:[["Sherlock: Crimes & Punishments","six cases, your deductions"],["Sherlock: The Awakened","Holmes vs. Lovecraft"],["AI: The Somnium Files 1 → 2","the wild card"],["Blue Prince","the puzzle-box manor"],["Disco Elysium","the literary summit (own its month)"]]},
+ {n:"Orsterra, In Order",w:"You're mid-journey in Octopath 1 — finish those eight stories, then 0 rewinds the clock on the same continent.",
+  s:[["Octopath Traveler","▶ currently playing — finish strong"],["Octopath Traveler 0","the prequel: rebuild Wishvale"]]},
+ {n:"Family & Grandson-Ready Shelf",w:"The E / E10+ corner — for game nights now and Caden co-pilot duty in a few years.",
+  s:[["Mario Kart World","24-player chaos"],["Super Mario Odyssey","assist mode = little hands welcome"],["Donkey Kong Bananza","2P assist punching"],["Street Fighter 6 + Scott Pilgrim","versus night with the boys"],["Cuphead","co-op (dad handles the hard bosses)"]]},
+ {n:"The Epic Commitments",w:"The 80–150 hour giants. One at a time, one per season, always paired with a cozy sidecar. Mature-content note applies to all four.",
+  s:[["The Witcher 3 Complete","the deepest well"],["Cyberpunk 2077 Ultimate","Night City, portable"],["Yakuza 0 Director's Cut","crime epic + karaoke"],["Red Dead Redemption","the slow-burn western"]]}
+];
+
+/* ============ STORAGE (guarded) ============ */
+const mem = {};
+const store = {
+  get(k){ try{ return window.localStorage.getItem(k); }catch(e){ return mem[k]||null; } },
+  set(k,v){ try{ window.localStorage.setItem(k,v); }catch(e){ mem[k]=v; } }
+};
+const KEY = "toby-switch-shelf-notes-v1";
+function loadNotes(){ try{ return JSON.parse(store.get(KEY)||"{}"); }catch(e){ return {}; } }
+function saveNotes(n){ store.set(KEY, JSON.stringify(n)); }
+let notes = loadNotes();
+
+/* ============ RENDER: stars backdrop ============ */
+(function(){
+  const wrap = document.getElementById("stars");
+  for(let i=0;i<70;i++){
+    const s=document.createElement("i");
+    if(Math.random()<.3) s.className="b";
+    s.style.left=Math.random()*100+"vw";
+    s.style.top=Math.random()*100+"vh";
+    wrap.appendChild(s);
+  }
+})();
+
+/* ============ RENDER: hero stats + shelf books ============ */
+(function(){
+  const genres = new Set(); GAMES.forEach(g=>g.g.forEach(x=>genres.add(x)));
+  const s2 = GAMES.filter(g=>/Switch 2/.test(g.t)).length;
+  document.getElementById("shelfStats").innerHTML =
+    `<div class="stat"><b>${GAMES.length}</b><span>games shelved</span></div>
+     <div class="stat"><b>${genres.size}</b><span>genres</span></div>
+     <div class="stat"><b>6</b><span>retro consoles</span></div>
+     <div class="stat"><b>1</b><span>now playing</span></div>`;
+  const books=document.getElementById("shelfBooks");
+  GAMES.forEach(g=>{
+    const i=document.createElement("i");
+    i.style.background = SPINE[g.g[0]]||"#888";
+    i.style.height = (18 + (g.s%27)) + "px";
+    books.appendChild(i);
+  });
+})();
+
+/* ============ RENDER: chips ============ */
+const allGenres = [...new Set(GAMES.flatMap(g=>g.g))].sort();
+let activeGenre = null;
+(function(){
+  const wrap=document.getElementById("chips");
+  const all=document.createElement("button");
+  all.className="chip on"; all.textContent="ALL"; all.onclick=()=>{activeGenre=null;syncChips();render();};
+  wrap.appendChild(all);
+  allGenres.forEach(g=>{
+    const b=document.createElement("button");
+    b.className="chip"; b.textContent=g.toUpperCase(); b.dataset.g=g;
+    b.onclick=()=>{activeGenre = activeGenre===g?null:g; syncChips(); render();};
+    wrap.appendChild(b);
+  });
+})();
+function syncChips(){
+  document.querySelectorAll(".chip").forEach(c=>{
+    c.classList.toggle("on", c.dataset.g ? c.dataset.g===activeGenre : !activeGenre);
+  });
+}
+
+/* ============ RENDER: library ============ */
+const lib = document.getElementById("library");
+const qInput = document.getElementById("q");
+const sortSel = document.getElementById("sort");
+qInput.addEventListener("input", render);
+sortSel.addEventListener("change", render);
+
+function scoreClass(s){ return s>=85?"hi":s>=75?"mid":"lo"; }
+function sortKey(t){ return t.replace(/^The /,"").toUpperCase(); }
+
+function render(){
+  const q=qInput.value.trim().toLowerCase();
+  let list = GAMES.filter(g=>{
+    if(activeGenre && !g.g.includes(activeGenre)) return false;
+    if(q && !(g.t.toLowerCase().includes(q)||g.d.toLowerCase().includes(q)||g.g.join(" ").toLowerCase().includes(q))) return false;
+    return true;
+  });
+  const mode=sortSel.value;
+  if(mode==="score") list.sort((a,b)=>b.s-a.s);
+  else if(mode==="year") list.sort((a,b)=>b.y-a.y || sortKey(a.t).localeCompare(sortKey(b.t)));
+  else list.sort((a,b)=>sortKey(a.t).localeCompare(sortKey(b.t)));
+
+  lib.innerHTML="";
+  const lettersPresent = new Set();
+  if(mode==="az"){
+    let current=null, section=null, grid=null;
+    list.forEach(g=>{
+      const L=sortKey(g.t)[0];
+      lettersPresent.add(L);
+      if(L!==current){
+        current=L;
+        section=document.createElement("div"); section.className="letter"; section.id="L-"+L;
+        section.innerHTML=`<h2>${L}</h2>`;
+        grid=document.createElement("div"); grid.className="grid";
+        section.appendChild(grid); lib.appendChild(section);
+      }
+      grid.appendChild(card(g));
+    });
+  } else {
+    const section=document.createElement("div"); section.className="letter";
+    const grid=document.createElement("div"); grid.className="grid";
+    section.appendChild(grid); lib.appendChild(section);
+    list.forEach(g=>grid.appendChild(card(g)));
+  }
+  renderAlpha(lettersPresent, mode==="az");
+  document.getElementById("countLine").textContent =
+    `Showing ${list.length} of ${GAMES.length} games` + (activeGenre?` · genre: ${activeGenre}`:"") + (q?` · search: “${q}”`:"");
+}
+
+function card(g){
+  const el=document.createElement("article");
+  el.className="game"; el.tabIndex=0;
+  el.style.setProperty("--spine", SPINE[g.g[0]]||"#888");
+  const n = notes[g.t]||{};
+  const stars = n.stars ? "★".repeat(n.stars)+"☆".repeat(5-n.stars) : "";
+  el.innerHTML = `
+    ${n.text?'<span class="note-dot" title="Has logbook entry"></span>':""}
+    <div class="g-top">
+      <div>
+        <div class="g-title">${g.t}</div>
+        <div class="g-meta">${g.y} · ${g.d}</div>
+      </div>
+      <div class="score ${scoreClass(g.s)}">${g.s}<small>CRITICS</small></div>
+    </div>
+    ${g.t==="Octopath Traveler"?'<span class="badge-playing">NOW PLAYING</span>':""}
+    ${stars?`<span class="mystars" title="Your rating">${stars}${n.status?` · <span style="color:var(--dim);font-family:'Space Mono',monospace;font-size:.65rem">${n.status.toUpperCase()}</span>`:""}</span>`:(n.status?`<span class="mystars" style="color:var(--dim);font-family:'Space Mono',monospace;font-size:.65rem">${n.status.toUpperCase()}</span>`:"")}
+    <p class="g-blurb">${g.a}</p>
+    <div class="g-tags">
+      ${g.g.map(t=>`<span class="tag">${t}</span>`).join("")}
+      <span class="tag esrb">ESRB ${g.e}</span>
+    </div>`;
+  el.addEventListener("click",()=>openSheet(g));
+  el.addEventListener("keydown",e=>{if(e.key==="Enter"||e.key===" "){e.preventDefault();openSheet(g);}});
+  return el;
+}
+
+function renderAlpha(present, active){
+  const wrap=document.getElementById("alpha"); wrap.innerHTML="";
+  "ABCDEFGHIJKLMNOPQRSTUVWXYZ".split("").forEach(L=>{
+    const a=document.createElement("a");
+    a.textContent=L;
+    if(active && present.has(L)){ a.href="#L-"+L; } else { a.className="dead"; }
+    wrap.appendChild(a);
+  });
+}
+
+/* ============ RENDER: queues ============ */
+(function(){
+  const wrap=document.getElementById("queueGrid");
+  QUEUES.forEach(q=>{
+    const d=document.createElement("div"); d.className="queue";
+    d.innerHTML=`<h3>${q.n}</h3><p class="why">${q.w}</p>
+      <ol>${q.s.map(s=>`<li><b>${s[0]}</b> <span>— ${s[1]}</span></li>`).join("")}</ol>`;
+    wrap.appendChild(d);
+  });
+})();
+
+/* ============ MODAL ============ */
+const overlay=document.getElementById("overlay");
+let currentGame=null, pendingStars=0;
+function openSheet(g){
+  currentGame=g;
+  document.getElementById("sheetSpine").style.background=SPINE[g.g[0]]||"#888";
+  document.getElementById("sheetTitle").textContent=g.t;
+  document.getElementById("sheetMeta").innerHTML=
+    `<span><b>${g.y}</b> release</span><span><b>${g.d}</b></span><span>ESRB <b>${g.e}</b></span><span>Critics <b>${g.s}</b>/100</span><span>${g.g.join(" · ")}</span>`;
+  document.getElementById("sheetAbout").textContent=g.a;
+  document.getElementById("sheetCritic").textContent=g.c;
+  document.getElementById("sheetPair").textContent=g.p;
+  const n=notes[g.t]||{};
+  pendingStars=n.stars||0;
+  drawStars();
+  document.getElementById("statusPick").value=n.status||"";
+  document.getElementById("noteBox").value=n.text||"";
+  document.getElementById("savedMsg").classList.remove("show");
+  overlay.classList.add("open");
+  document.body.style.overflow="hidden";
+  document.getElementById("closeBtn").focus();
+}
+function drawStars(){
+  const wrap=document.getElementById("starPick"); wrap.innerHTML="";
+  for(let i=1;i<=5;i++){
+    const b=document.createElement("button");
+    b.textContent="★"; b.className=i<=pendingStars?"lit":"";
+    b.setAttribute("aria-label",i+" star"+(i>1?"s":""));
+    b.onclick=()=>{ pendingStars = (pendingStars===i)?0:i; drawStars(); };
+    wrap.appendChild(b);
+  }
+}
+function closeSheet(){ overlay.classList.remove("open"); document.body.style.overflow=""; currentGame=null; render(); }
+document.getElementById("closeBtn").onclick=closeSheet;
+overlay.addEventListener("click",e=>{ if(e.target===overlay) closeSheet(); });
+document.addEventListener("keydown",e=>{ if(e.key==="Escape"&&overlay.classList.contains("open")) closeSheet(); });
+
+document.getElementById("saveBtn").onclick=()=>{
+  if(!currentGame) return;
+  notes[currentGame.t]={
+    stars:pendingStars,
+    status:document.getElementById("statusPick").value,
+    text:document.getElementById("noteBox").value.trim()
+  };
+  if(!notes[currentGame.t].stars && !notes[currentGame.t].status && !notes[currentGame.t].text) delete notes[currentGame.t];
+  saveNotes(notes);
+  const m=document.getElementById("savedMsg");
+  m.classList.add("show"); setTimeout(()=>m.classList.remove("show"),2200);
+};
+
+/* ============ EXPORT ============ */
+document.getElementById("exportBtn").onclick=()=>{
+  const blob=new Blob([JSON.stringify(notes,null,2)],{type:"application/json"});
+  const a=document.createElement("a");
+  a.href=URL.createObjectURL(blob);
+  a.download="switch-shelf-notes.json";
+  a.click();
+  URL.revokeObjectURL(a.href);
+};
+
+render();
+</script>
+</body>
+</html>
